@@ -1,0 +1,9 @@
+{
+  "name": "guestbook-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Guestbook smart contract for the live Fuji demo (Foundry, bun-managed deps). Tasks live in the justfile; package.json exists only to pin Solidity deps.",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2"
+  }
+}

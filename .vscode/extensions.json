@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "dotenv.dotenv-vscode",
+    "editorconfig.editorconfig",
+    "NomicFoundation.hardhat-solidity",
+    "tamasfe.even-better-toml"
+  ]
+}

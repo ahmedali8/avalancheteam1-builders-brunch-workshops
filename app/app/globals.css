@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Deck design tokens (dark theme) — mirrored from decks/deck-2.9.html so the demo matches
+   the slides. See guestbook/idea.md § Design system. */
+:root {
+  --ground: #161617; /* page background   */
+  --panel: #0e0e0f; /* cards             */
+  --text: #ffffff; /* primary text      */
+  --text-2: #c4c4cb; /* secondary text    */
+  --muted: #7f7f87; /* captions          */
+  --line: #2a2a2c; /* borders           */
+  --rule: #232326; /* hairline dividers */
+  --chip: #33333a; /* pills / chips     */
+  --red: #e6212f; /* accent            */
+  --good: #3fbf7f; /* success / FINAL   */
+}
+
+/* Map the tokens into Tailwind's theme so utilities like `bg-panel`, `text-muted`,
+   `border-line`, `font-display`, `text-red` resolve to the deck values. */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-rule: var(--rule);
+  --color-chip: var(--chip);
+  --color-red: var(--red);
+  --color-good: var(--good);
+
+  --font-display: var(--font-kanit); /* Kanit — headings      */
+  --font-sans: var(--font-aeonik); /* Aeonik — body / UI    */
+  --font-mono: var(--font-mono); /* JetBrains Mono — code */
+}
+
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-aeonik), system-ui, sans-serif;
+}

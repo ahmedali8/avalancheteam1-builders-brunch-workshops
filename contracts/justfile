@@ -1,0 +1,68 @@
+# Guestbook contracts. `set dotenv-load` puts .env into every recipe's environment,
+# so $DEPLOYER_ADDRESS and friends expand without a wrapper script.
+set dotenv-load
+
+_default:
+    @just --list
+
+build:
+    forge build
+
+test:
+    forge test -vvv
+
+fmt:
+    forge fmt
+
+# Import the deployer key into an encrypted keystore (paste a THROWAWAY key once).
+wallet-import:
+    cast wallet import fuji-demo --interactive
+
+# Simulate the Fuji deploy. Pass flags through, e.g. `just deploy-fuji --broadcast`.
+deploy-fuji *ARGS:
+    forge script script/Deploy.s.sol:Deploy \
+      --rpc-url fuji \
+      --account fuji-demo \
+      --sender "$DEPLOYER_ADDRESS" \
+      {{ ARGS }}
+
+# Deploy for real. Verify separately with `just verify-fuji <address>` — bundling --verify
+# here would let a flaky explorer API fail the recipe after the contract is already on chain.
+# Deploy to Fuji for real (verification is a separate step).
+deploy-fuji-live: (deploy-fuji "--broadcast")
+
+# --- Verification --------------------------------------------------------------
+contract := "src/Guestbook.sol:Guestbook"
+
+# Verify on Snowtrace via Routescan, which powers it. Needs no API key.
+verify-fuji address:
+    forge verify-contract {{ address }} {{ contract }} \
+      --chain 43113 \
+      --verifier etherscan \
+      --verifier-url 'https://api.routescan.io/v2/network/testnet/evm/43113/etherscan' \
+      --etherscan-api-key 'verifyContract' \
+      --watch
+
+# --- Local anvil ---------------------------------------------------------------
+# Anvil's well-known account #0. Public, deterministic, local-only — never used on a
+# real network, which is why it can sit in the repo.
+anvil_key := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+anvil_rpc := "http://127.0.0.1:8545"
+
+# Start a local node. `--block-time 1` makes finality feel Fuji-like instead of instant.
+anvil:
+    anvil --block-time 1
+
+# Deploy to the running anvil node. Prints the address for NEXT_PUBLIC_GUESTBOOK_ADDRESS_LOCAL.
+deploy-local *ARGS:
+    forge script script/Deploy.s.sol:Deploy \
+      --rpc-url {{ anvil_rpc }} \
+      --private-key {{ anvil_key }} \
+      --broadcast \
+      {{ ARGS }}
+
+# Smoke-test a local deploy without the app: sign once, then read the wall back.
+smoke-local address:
+    cast send {{ address }} "sign(string)" "gm from cast" --rpc-url {{ anvil_rpc }} --private-key {{ anvil_key }}
+    cast call {{ address }} "total()(uint256)" --rpc-url {{ anvil_rpc }}
+    cast call {{ address }} "getEntries(uint256,uint256)((address,string,uint256)[])" 0 10 --rpc-url {{ anvil_rpc }}

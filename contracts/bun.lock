@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "guestbook-contracts",
+      "devDependencies": {
+        "forge-std": "github:foundry-rs/forge-std#v1.16.2",
+      },
+    },
+  },
+  "packages": {
+    "forge-std": ["forge-std@github:foundry-rs/forge-std#bf647bd", {}, "foundry-rs-forge-std-bf647bd"],
+  }
+}

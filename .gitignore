@@ -1,0 +1,5 @@
+# macOS. Covered by most global gitignores, but not everyone's.
+.DS_Store
+
+# bun / deps
+node_modules/

@@ -1,0 +1,12 @@
+{
+  "biome.enabled": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "files.associations": {
+    ".gas-snapshot": "julia"
+  },
+  "solidity.formatter": "forge"
+}
