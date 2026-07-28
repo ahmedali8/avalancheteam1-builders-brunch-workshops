@@ -1,8 +1,8 @@
 # Guestbook
 
 A dead-simple on-chain guestbook, deployed live to the Avalanche **Fuji testnet** during
-the talk. Anyone can `sign(message)`; the frontend shows the transaction reaching
-**finality in under a second**.
+the talk. Anyone can `sign(message)`; the wall fills in live, each entry linking out to its
+transaction on Snowtrace.
 
 ```
 guestbook/
@@ -48,8 +48,8 @@ cp .env.local.example .env.local
 bun run dev                    # http://localhost:3000
 ```
 
-Connect a wallet (Core / MetaMask), type a message, hit **Sign** — the finality timer
-starts when the transaction is broadcast and freezes on the receipt (~0.8–2s on Fuji).
+Connect a wallet (Core / MetaMask), type a message, hit **Sign** — the entry lands on the
+wall once the receipt confirms (~0.8–2s on Fuji).
 
 For the audience finale, deploy the app (e.g. Vercel) and put its URL behind the QR on the
 last slide. The same `.env.local` values become the host's environment variables.
@@ -58,8 +58,8 @@ last slide. The same `.env.local` values become the host's environment variables
 
 1. `just test` → green.
 2. `just deploy-fuji-live` → live deploy, one command.
-3. Open the app, connect, sign → sub-second finality on screen; show the tx on
-   [Snowtrace](https://testnet.snowtrace.io).
+3. Open the app, connect, sign → the entry appears on the wall in about a second; click its
+   tx link through to [Snowtrace](https://testnet.snowtrace.io).
 4. *(Optional finale)* QR → audience signs from their phones; the feed fills live.
 
 ## Fuji reference
@@ -74,6 +74,8 @@ last slide. The same `.env.local` values become the host's environment variables
 ## Notes
 
 - **No indexer.** The feed reads `getEntries` directly and watches the `Signed` event —
-  plenty for a talk-sized wall.
+  plenty for a talk-sized wall. Tx links come from a 2000-block `Signed` log scan, since a
+  contract can't return its own transaction hash; the public Fuji RPC caps `eth_getLogs` at
+  2048 blocks, so entries older than that render without a link.
 - **No secrets in the repo.** The deployer key lives in foundry's encrypted keystore; `.env`
   and `.env.local` are git-ignored.

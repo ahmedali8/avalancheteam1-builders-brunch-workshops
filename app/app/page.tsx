@@ -14,7 +14,7 @@ export default function Home() {
     address,
     abi: guestbookAbi,
     functionName: "total",
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: 3000 },
   });
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useChainId, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import {
   guestbookAbi,
@@ -9,9 +9,7 @@ import {
   messageByteLength,
 } from "@/lib/guestbook";
 
-// Phases of one signature. The finality timer only runs during "confirming" — it starts
-// when the transaction is broadcast (we have a hash), NOT when the button is clicked, so
-// it measures the chain's time-to-finality, not how long you took to approve in the wallet.
+// Phases of one signature: approving in the wallet, waiting for the receipt, then done.
 type Phase = "idle" | "signing" | "confirming" | "final";
 
 export function SignPanel() {
@@ -22,32 +20,21 @@ export function SignPanel() {
 
   const [message, setMessage] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
-  const [elapsedMs, setElapsedMs] = useState(0);
   const [hash, setHash] = useState<`0x${string}`>();
   const [error, setError] = useState<string>();
-  const startRef = useRef<number>(0);
 
-  const { data: receipt } = useWaitForTransactionReceipt({ hash });
+  // Poll fast and skip viem's replacement check. The default 4s poll plus the
+  // `checkReplacement` retry ladder (getTransaction backs off ~12.6s while blocking the
+  // block watcher) leaves the panel stuck on "Confirming…" long after the chain is done.
+  const { data: receipt } = useWaitForTransactionReceipt({
+    hash,
+    pollingInterval: 250,
+    checkReplacement: false,
+  });
 
-  // Freeze the timer the moment the receipt lands — this is the finality number.
   useEffect(() => {
-    if (receipt && phase === "confirming") {
-      setElapsedMs(performance.now() - startRef.current);
-      setPhase("final");
-    }
+    if (receipt && phase === "confirming") setPhase("final");
   }, [receipt, phase]);
-
-  // Tick the timer up while we wait for the receipt.
-  useEffect(() => {
-    if (phase !== "confirming") return;
-    let raf = 0;
-    const tick = () => {
-      setElapsedMs(performance.now() - startRef.current);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [phase]);
 
   async function onSign() {
     if (!address) return;
@@ -61,7 +48,6 @@ export function SignPanel() {
         args: [message],
         chainId,
       });
-      startRef.current = performance.now(); // start timing at broadcast
       setHash(txHash);
       setPhase("confirming");
     } catch (err) {
@@ -73,7 +59,6 @@ export function SignPanel() {
   function reset() {
     setMessage("");
     setHash(undefined);
-    setElapsedMs(0);
     setPhase("idle");
   }
 
@@ -86,7 +71,6 @@ export function SignPanel() {
     }
   }, [address, chainId]);
 
-  const seconds = (elapsedMs / 1000).toFixed(2);
   const messageBytes = messageByteLength(message);
   const tooLong = messageBytes > MAX_MESSAGE_LENGTH;
   const canSign =
@@ -94,38 +78,8 @@ export function SignPanel() {
 
   if (!address) return null;
 
-  const timerColor =
-    phase === "final" ? "text-good" : phase === "confirming" ? "text-text" : "text-muted/40";
-
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-panel">
-      {/* The finality timer — the hero. Always a live number; colour tells the state. */}
-      <div className="flex items-end justify-between gap-4 border-b border-rule px-6 py-5">
-        <div className="flex flex-col gap-2">
-          <span className="text-[0.7rem] uppercase tracking-[0.28em] text-muted">
-            Time to finality
-          </span>
-          <div className="flex items-end gap-1">
-            <span
-              className={`font-mono text-6xl leading-none tabular-nums transition-colors ${timerColor}`}
-            >
-              {seconds}
-            </span>
-            <span className={`mb-1 font-mono text-2xl transition-colors ${timerColor}`}>s</span>
-          </div>
-        </div>
-        <div className="mb-1 flex items-center gap-2 text-sm">
-          {phase === "confirming" && (
-            <>
-              <span className="h-2 w-2 animate-pulse rounded-full bg-red" />
-              <span className="text-muted">confirming</span>
-            </>
-          )}
-          {phase === "final" && <span className="font-medium text-good">✓ final</span>}
-        </div>
-      </div>
-
-      {/* Input + action. */}
       <div className="px-6 py-5">
         {phase === "final" ? (
           <div className="flex items-center justify-between gap-4">

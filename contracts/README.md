@@ -69,8 +69,8 @@ On a fresh anvil the address is deterministically `0x5FbDB2315678afecb367f032d93
 Put it in the app's `.env.local` as `NEXT_PUBLIC_GUESTBOOK_ADDRESS_LOCAL`, then point your wallet
 at Anvil (RPC `http://127.0.0.1:8545`, chain id `31337`) and import account #0.
 
-`just anvil` uses `--block-time 1` so the finality timer reads ~1s like Fuji, instead of the
-few milliseconds an instant-mining node would show.
+`just anvil` uses `--block-time 1` so confirmations take ~1s like Fuji, instead of the few
+milliseconds an instant-mining node would show.
 
 Check the contract without the app:
 
