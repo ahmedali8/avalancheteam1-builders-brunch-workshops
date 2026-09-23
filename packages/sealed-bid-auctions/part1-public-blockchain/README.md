@@ -3,9 +3,7 @@
 Built live at Builders Brunch — a first-price sealed-bid auction in two steps, where the
 second exists to fix what the first gets wrong.
 
-Part 1 of 2. This half runs on Fuji, a public chain where anyone can read the bids.
-Part 2 re-runs the same auction on a permissioned Avalanche L1 — which changes who is on
-the network, and does **not** change the fact that everyone on it can read storage.
+This runs on Fuji, a public chain where anyone can read the bids.
 
 - `src/step1/NaiveAuction.sol` — the obvious version. Bids sit in a `private`
   mapping and are readable by anyone.
