@@ -37,10 +37,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const cookie = (await headers()).get("cookie");
 
   return (
-    <html
-      lang="en"
-      className={`${kanit.variable} ${aeonik.variable} ${jetbrainsMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${kanit.variable} ${aeonik.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers cookie={cookie}>{children}</Providers>
       </body>

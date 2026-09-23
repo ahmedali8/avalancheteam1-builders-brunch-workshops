@@ -1,13 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  useChainId,
-  useConfig,
-  usePublicClient,
-  useReadContract,
-  useWatchContractEvent,
-} from "wagmi";
+import { useChainId, useConfig, usePublicClient, useReadContract, useWatchContractEvent } from "wagmi";
 import { guestbookAbi, guestbookAddress } from "@/lib/guestbook";
 
 // How far back to scan for `Signed` logs when linking entries to their transactions. The
@@ -64,10 +58,7 @@ export function Feed() {
       });
       return new Map(
         logs.flatMap(({ args, transactionHash }) =>
-          args.signer &&
-          args.message !== undefined &&
-          args.timestamp !== undefined &&
-          transactionHash
+          args.signer && args.message !== undefined && args.timestamp !== undefined && transactionHash
             ? [[entryKey(args.signer, args.message, args.timestamp), transactionHash] as const]
             : [],
         ),
