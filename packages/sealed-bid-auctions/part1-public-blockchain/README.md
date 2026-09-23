@@ -1,4 +1,4 @@
-# Sealed-bid auction
+# Sealed-bid auctions — Part 1: public blockchain
 
 Built live at Builders Brunch — a first-price sealed-bid auction in two steps, where the
 second exists to fix what the first gets wrong.
