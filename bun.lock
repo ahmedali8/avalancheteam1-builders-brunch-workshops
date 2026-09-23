@@ -36,7 +36,6 @@
     },
   },
   "trustedDependencies": [
-    "sharp",
     "utf-8-validate",
     "keccak",
     "bufferutil",
