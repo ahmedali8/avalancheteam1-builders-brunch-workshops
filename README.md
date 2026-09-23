@@ -9,7 +9,7 @@ folder under `packages/`, with its own README.
 | # | Folder | What it is |
 | --- | --- | --- |
 | 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. |
-| 2 | [`packages/sealed-bid-auctions`](./packages/sealed-bid-auctions) | Sealed-bid auction built in two steps: a naive auction broken live, then commit-reveal — Foundry contracts. |
+| 2 | [`packages/sealed-bid-auctions`](./packages/sealed-bid-auctions) | Two-part sealed-bid auction workshop. Part 1: a naive auction broken live on a public chain, then commit-reveal. |
 
 ```text
 packages/
