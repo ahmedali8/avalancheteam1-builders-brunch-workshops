@@ -1105,7 +1105,7 @@
 
     "porto/zustand": ["zustand@5.0.14", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g=="],
 
-    "sealed-bid-contracts/forge-std": ["forge-std@github:foundry-rs/forge-std#bf647bd", {}, "foundry-rs-forge-std-bf647bd", "sha512-YRYu4Jg0V000bFg3dCXp8MoIaG6f7/TfgxqBFd7fd1gdU83uL4F3YH1ld8zdF41m+7Qc8Ew6z1/3HSyGC/5l9g=="],
+    "sealed-bid-auctions-contracts/forge-std": ["forge-std@github:foundry-rs/forge-std#bf647bd", {}, "foundry-rs-forge-std-bf647bd", "sha512-YRYu4Jg0V000bFg3dCXp8MoIaG6f7/TfgxqBFd7fd1gdU83uL4F3YH1ld8zdF41m+7Qc8Ew6z1/3HSyGC/5l9g=="],
 
     "socket.io-client/debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
 
