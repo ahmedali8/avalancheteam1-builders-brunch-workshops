@@ -1,0 +1,15 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+# Solidity deps are bun-managed in node_modules (see remappings.txt), not `forge install`.
+libs = ["node_modules"]
+solc = "0.8.36"
+evm_version = "prague"
+optimizer = true
+optimizer_runs = 200
+
+# Named RPC aliases, so `--rpc-url fuji` works without shell variable expansion.
+[rpc_endpoints]
+fuji = "${FUJI_RPC_URL}"
