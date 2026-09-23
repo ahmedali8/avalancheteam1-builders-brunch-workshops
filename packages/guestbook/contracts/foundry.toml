@@ -12,6 +12,9 @@ evm_version = "prague"
 optimizer = true
 optimizer_runs = 200
 
+[fmt]
+line_length = 120
+
 # Named RPC aliases, so `--rpc-url fuji` works without shell variable expansion.
 [rpc_endpoints]
 fuji = "${FUJI_RPC_URL}"
