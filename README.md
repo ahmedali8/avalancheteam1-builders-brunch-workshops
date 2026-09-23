@@ -8,7 +8,7 @@ folder under `packages/`, with its own README.
 
 | # | Folder | What it is |
 |---|---|---|
-| 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. [Live app](https://guestbook-team1-builders-brunch-ava.vercel.app/) |
+| 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. |
 
 ```
 packages/

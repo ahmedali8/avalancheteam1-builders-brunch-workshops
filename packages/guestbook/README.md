@@ -4,8 +4,6 @@ A dead-simple on-chain guestbook, deployed live to the Avalanche **Fuji testnet*
 the talk. Anyone can `sign(message)`; the wall fills in live, each entry linking out to its
 transaction on Snowtrace.
 
-**Live app:** https://guestbook-team1-builders-brunch-ava.vercel.app/
-
 ```
 guestbook/
 ├── contracts/     Foundry — Solidity 0.8.36, forge-std, bun-managed deps
@@ -42,7 +40,7 @@ just verify-fuji 0xYourAddr    # verify on Snowtrace (separate step, needs no AP
 Copy the printed address — the app needs it. See [`contracts/README.md`](./contracts/README.md)
 for the full command list.
 
-## 2. App → local + hosted
+## 2. App → local
 
 ```bash
 cd ../app
@@ -55,10 +53,6 @@ bun run dev                    # http://localhost:3000
 
 Connect a wallet (Core / MetaMask), type a message, hit **Sign** — the entry lands on the
 wall once the receipt confirms (~0.8–2s on Fuji).
-
-For the audience finale, the app is deployed on Vercel at
-https://guestbook-team1-builders-brunch-ava.vercel.app/ — put that behind the QR on the last
-slide. The same `.env.local` values are set as the host's environment variables.
 
 ## Demo flow, on stage
 
