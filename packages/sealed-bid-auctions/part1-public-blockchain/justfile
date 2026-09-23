@@ -1,0 +1,96 @@
+# Sealed-bid auction, built live in two steps. `set dotenv-load` puts .env into every
+# recipe's environment, so $DEPLOYER_ADDRESS and friends expand without a wrapper script.
+set dotenv-load
+
+_default:
+    @just --list
+
+build:
+    forge build
+
+test:
+    forge test -vv
+
+# The stage tests: step 1's attacks (they succeed) and step 2 resisting them.
+test-attacks:
+    forge test --match-test "test_Attack|test_Fixed" -vv
+
+fmt:
+    forge fmt
+
+# --- Local anvil ---------------------------------------------------------------
+# Anvil's well-known accounts. Public, deterministic, local-only — never real networks,
+# which is why they can sit in the repo.
+anvil_rpc  := "http://127.0.0.1:8545"
+key0 := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+key1 := "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+key2 := "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+
+# Start a local node. `--block-time 1` makes finality feel Fuji-like instead of instant.
+anvil:
+    anvil --block-time 1
+
+deploy-naive-local:
+    forge script script/DeployNaiveAuction.s.sol:DeployNaiveAuction \
+      --rpc-url {{ anvil_rpc }} --private-key {{ key0 }} --broadcast
+
+deploy-sealed-local:
+    forge script script/DeploySealedBidAuction.s.sol:DeploySealedBidAuction \
+      --rpc-url {{ anvil_rpc }} --private-key {{ key1 }} --broadcast
+
+# --- THE ATTACK ----------------------------------------------------------------
+# Read a "private" sealed bid straight out of contract storage. `sealedBid` is the first
+# declared variable in NaiveAuction, so its slot index is 0, and Solidity puts
+# sealedBid[bidder] at keccak256(bidder . 0).
+peek auction bidder rpc=anvil_rpc:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    slot=$(cast index address {{ bidder }} 0)
+    raw=$(cast storage {{ auction }} "$slot" --rpc-url {{ rpc }})
+    wei=$(cast to-dec "$raw")
+    echo "bidder : {{ bidder }}"
+    echo "slot   : $slot"
+    echo "raw    : $raw"
+    echo "bid    : $wei wei  =  $(cast from-wei "$wei") ETH"
+
+# Submit a bid to the naive auction as one of the anvil accounts.
+bid-local auction amount key=key1:
+    cast send {{ auction }} "submitBid(uint256)" {{ amount }} \
+      --rpc-url {{ anvil_rpc }} --private-key {{ key }}
+
+# --- Commit-reveal helpers -----------------------------------------------------
+# Build a commitment locally. This is a pure computation — it never touches the chain,
+# so the bid and salt are never published. Never compute this with `cast send`.
+commit-hash bidder amount salt:
+    @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" {{ bidder }} {{ amount }} {{ salt }})
+
+# A random 32-byte salt. Keep the output — without it you cannot reveal.
+salt:
+    @cast keccak $(date +%s%N)$RANDOM
+
+# --- Fuji ----------------------------------------------------------------------
+# Import the deployer key into an encrypted keystore (paste a THROWAWAY key once).
+wallet-import:
+    cast wallet import sealed-bid-demo --interactive
+
+deploy-naive-fuji *ARGS:
+    forge script script/DeployNaiveAuction.s.sol:DeployNaiveAuction \
+      --rpc-url fuji --account sealed-bid-demo --sender "$DEPLOYER_ADDRESS" {{ ARGS }}
+
+deploy-sealed-fuji *ARGS:
+    forge script script/DeploySealedBidAuction.s.sol:DeploySealedBidAuction \
+      --rpc-url fuji --account sealed-bid-demo --sender "$DEPLOYER_ADDRESS" {{ ARGS }}
+
+# Deploy for real. Verify separately — bundling --verify would let a flaky explorer API
+# fail the recipe after the contract is already on chain.
+deploy-naive-fuji-live: (deploy-naive-fuji "--broadcast")
+deploy-sealed-fuji-live: (deploy-sealed-fuji "--broadcast")
+
+# Verify on Snowtrace via Routescan, which powers it. Needs no API key.
+verify-fuji address contract:
+    forge verify-contract {{ address }} {{ contract }} \
+      --chain 43113 \
+      --verifier etherscan \
+      --verifier-url 'https://api.routescan.io/v2/network/testnet/evm/43113/etherscan' \
+      --etherscan-api-key 'verifyContract' \
+      --watch
