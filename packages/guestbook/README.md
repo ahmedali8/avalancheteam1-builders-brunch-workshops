@@ -4,7 +4,7 @@ A dead-simple on-chain guestbook, deployed live to the Avalanche **Fuji testnet*
 the talk. Anyone can `sign(message)`; the wall fills in live, each entry linking out to its
 transaction on Snowtrace.
 
-```
+```text
 guestbook/
 ├── contracts/     Foundry — Solidity 0.8.36, forge-std, bun-managed deps
 └── app/           Next.js + wagmi + RainbowKit + viem + Tailwind + Biome
@@ -15,7 +15,8 @@ installs deps for every workspace into the single root `bun.lock`.
 
 ## Prerequisites
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) — `curl -L https://foundry.paradigm.xyz | bash && foundryup`
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) —
+  `curl -L https://foundry.paradigm.xyz | bash && foundryup`
 - [Bun](https://bun.com/docs/installation) — `curl -fsSL https://bun.sh/install | bash`
 - [just](https://just.systems/man/en/packages.html) — `brew install just` (task runner for the contracts)
 - A throwaway wallet funded from the [Fuji faucet](https://core.app/tools/testnet-faucet)
@@ -65,11 +66,11 @@ wall once the receipt confirms (~0.8–2s on Fuji).
 ## Fuji reference
 
 | | |
-|---|---|
+| --- | --- |
 | Chain ID | `43113` |
 | RPC | `https://api.avax-test.network/ext/bc/C/rpc` |
-| Explorer | https://testnet.snowtrace.io |
-| Faucet | https://core.app/tools/testnet-faucet |
+| Explorer | <https://testnet.snowtrace.io> |
+| Faucet | <https://core.app/tools/testnet-faucet> |
 
 ## Notes
 

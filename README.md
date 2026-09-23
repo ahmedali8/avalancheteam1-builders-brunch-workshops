@@ -7,10 +7,10 @@ folder under `packages/`, with its own README.
 ## Packages
 
 | # | Folder | What it is |
-|---|---|---|
+| --- | --- | --- |
 | 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. |
 
-```
+```text
 packages/
 └── guestbook/
 ```
