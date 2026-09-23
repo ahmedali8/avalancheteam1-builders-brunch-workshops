@@ -1,6 +1,6 @@
 # Secrets on a Public Chain — run of show
 
-**Builders Brunch · Part 1 of 2 · Wed 23 Sep 2026 · ~90 minutes · Intermediate**
+Builders Brunch · Part 1 of 2 · Wed 23 Sep 2026 · ~90 minutes · Intermediate
 
 Build a sealed-bid auction from an empty file, break it live, then fix it properly.
 
