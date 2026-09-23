@@ -12,6 +12,9 @@ guestbook/
 └── app/           Next.js + wagmi + RainbowKit + viem + Tailwind + Biome
 ```
 
+Part of the workshops monorepo: `bun install` (from the repo root or any package folder)
+installs deps for every workspace into the single root `bun.lock`.
+
 ## Prerequisites
 
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) — `curl -L https://foundry.paradigm.xyz | bash && foundryup`
