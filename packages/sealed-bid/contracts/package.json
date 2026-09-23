@@ -1,0 +1,9 @@
+{
+  "name": "sealed-bid-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sealed-bid auction built live in two steps for Builders Brunch. Tasks live in the justfile; package.json exists only to pin Solidity deps.",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2"
+  }
+}
