@@ -13,8 +13,6 @@ folder under `packages/`, with its own README.
 ```
 packages/
 └── guestbook/
-    ├── contracts/     guestbook-contracts — Foundry, Solidity 0.8.36
-    └── app/           guestbook-app — Next.js + wagmi + RainbowKit
 ```
 
 ## Getting started
