@@ -3,10 +3,5 @@
   "private": true,
   "workspaces": [
     "packages/*/*"
-  ],
-  "trustedDependencies": [
-    "bufferutil",
-    "keccak",
-    "utf-8-validate"
   ]
 }
