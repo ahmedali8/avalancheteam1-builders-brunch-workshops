@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "guestbook-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -24,16 +24,5 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "bufferutil",
-    "keccak",
-    "sharp",
-    "unrs-resolver",
-    "utf-8-validate"
-  ]
+  }
 }

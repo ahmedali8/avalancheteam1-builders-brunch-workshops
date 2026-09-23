@@ -1,0 +1,7 @@
+{
+  "name": "team1-builders-brunch-workshops",
+  "private": true,
+  "workspaces": [
+    "packages/*/*"
+  ]
+}

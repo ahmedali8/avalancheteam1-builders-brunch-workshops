@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAccount, useChainId, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import {
-  guestbookAbi,
-  guestbookAddress,
-  MAX_MESSAGE_LENGTH,
-  messageByteLength,
-} from "@/lib/guestbook";
+import { guestbookAbi, guestbookAddress, MAX_MESSAGE_LENGTH, messageByteLength } from "@/lib/guestbook";
 
 // Phases of one signature: approving in the wallet, waiting for the receipt, then done.
 type Phase = "idle" | "signing" | "confirming" | "final";
@@ -73,8 +68,7 @@ export function SignPanel() {
 
   const messageBytes = messageByteLength(message);
   const tooLong = messageBytes > MAX_MESSAGE_LENGTH;
-  const canSign =
-    isConnected && !!address && message.trim().length > 0 && !tooLong && phase === "idle";
+  const canSign = isConnected && !!address && message.trim().length > 0 && !tooLong && phase === "idle";
 
   if (!address) return null;
 
@@ -112,11 +106,7 @@ export function SignPanel() {
                 disabled={!canSign}
                 className="rounded-md bg-red px-7 py-2 font-display text-base text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-chip disabled:text-muted"
               >
-                {phase === "signing"
-                  ? "Approve in wallet…"
-                  : phase === "confirming"
-                    ? "Confirming…"
-                    : "Sign"}
+                {phase === "signing" ? "Approve in wallet…" : phase === "confirming" ? "Confirming…" : "Sign"}
               </button>
             </div>
             {!isConnected && <p className="text-xs text-muted">Connect a wallet to sign.</p>}

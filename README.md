@@ -1,84 +1,32 @@
-# Guestbook
+# Team1 Builders Brunch — Workshops
 
-A dead-simple on-chain guestbook, deployed live to the Avalanche **Fuji testnet** during
-the talk. Anyone can `sign(message)`; the wall fills in live, each entry linking out to its
-transaction on Snowtrace.
+Monorepo for the Builders Brunch workshop demos, managed as a
+[Bun workspace](https://bun.com/docs/install/workspaces). Each workshop lives in its own
+folder under `packages/`, with its own README.
 
-**Live app:** https://guestbook-team1-builders-brunch-ava.vercel.app/
+## Packages
 
+| # | Folder | What it is |
+| --- | --- | --- |
+| 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. |
+
+```text
+packages/
+└── guestbook/
 ```
-guestbook/
-├── contracts/     Foundry — Solidity 0.8.36, forge-std, bun-managed deps
-└── app/           Next.js + wagmi + RainbowKit + viem + Tailwind + Biome
-```
 
-## Prerequisites
-
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) — `curl -L https://foundry.paradigm.xyz | bash && foundryup`
-- [Bun](https://bun.com/docs/installation) — `curl -fsSL https://bun.sh/install | bash`
-- [just](https://just.systems/man/en/packages.html) — `brew install just` (task runner for the contracts)
-- A throwaway wallet funded from the [Fuji faucet](https://core.app/tools/testnet-faucet)
-
-macOS, in one go: `brew install just oven-sh/bun/bun && curl -L https://foundry.paradigm.xyz | bash && foundryup`
-
-## 1. Contract → Fuji
+## Getting started
 
 ```bash
-cd contracts
-bun install                    # forge-std, pinned from GitHub (not `forge install`)
-just test                      # 7 tests, all green
-
-# One-time: import a THROWAWAY key into an encrypted keystore (no plaintext on disk).
-just wallet-import             # paste the key, set a password
-
-cp .env.example .env           # set FUJI_RPC_URL + DEPLOYER_ADDRESS
-just deploy-fuji-live          # deploys; prints "Guestbook deployed at: 0x…"
-just verify-fuji 0xYourAddr    # verify on Snowtrace (separate step, needs no API key)
+bun install        # one install at the root covers every workshop (single bun.lock)
 ```
 
-Copy the printed address — the app needs it. See [`contracts/README.md`](./contracts/README.md)
-for the full command list.
+Then follow the README of the workshop you want to run.
 
-## 2. App → local + hosted
+## Adding a workshop
 
-```bash
-cd ../app
-bun install
-cp .env.local.example .env.local
-# set NEXT_PUBLIC_GUESTBOOK_ADDRESS_FUJI to the deployed address
-
-bun run dev                    # http://localhost:3000
-```
-
-Connect a wallet (Core / MetaMask), type a message, hit **Sign** — the entry lands on the
-wall once the receipt confirms (~0.8–2s on Fuji).
-
-For the audience finale, the app is deployed on Vercel at
-https://guestbook-team1-builders-brunch-ava.vercel.app/ — put that behind the QR on the last
-slide. The same `.env.local` values are set as the host's environment variables.
-
-## Demo flow, on stage
-
-1. `just test` → green.
-2. `just deploy-fuji-live` → live deploy, one command.
-3. Open the app, connect, sign → the entry appears on the wall in about a second; click its
-   tx link through to [Snowtrace](https://testnet.snowtrace.io).
-4. *(Optional finale)* QR → audience signs from their phones; the feed fills live.
-
-## Fuji reference
-
-| | |
-|---|---|
-| Chain ID | `43113` |
-| RPC | `https://api.avax-test.network/ext/bc/C/rpc` |
-| Explorer | https://testnet.snowtrace.io |
-| Faucet | https://core.app/tools/testnet-faucet |
-
-## Notes
-
-- **No indexer.** The feed reads `getEntries` directly and watches the `Signed` event —
-  plenty for a talk-sized wall. Tx links come from a 2000-block `Signed` log scan, since a
-  contract can't return its own transaction hash; the public Fuji RPC caps `eth_getLogs` at
-  2048 blocks, so entries older than that render without a link.
-- **No secrets in the repo.** The deployer key lives in foundry's encrypted keystore; `.env`
-  and `.env.local` are git-ignored.
+1. Create `packages/<workshop>/<package>/` — every folder matching `packages/*/*` with a
+   `package.json` is picked up as a workspace.
+2. Give each `package.json` a unique, workshop-prefixed `name` (e.g. `guestbook-app`).
+3. Run `bun install` at the root and commit the updated `bun.lock`.
+4. Add a row to the table above.
