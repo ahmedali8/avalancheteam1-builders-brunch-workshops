@@ -35,7 +35,7 @@
       },
     },
     "packages/sealed-bid-auctions/contracts": {
-      "name": "sealed-bid-contracts",
+      "name": "sealed-bid-auctions-contracts",
       "version": "0.0.0",
       "devDependencies": {
         "forge-std": "github:foundry-rs/forge-std#v1.16.2",
