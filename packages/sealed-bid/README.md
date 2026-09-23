@@ -32,3 +32,4 @@ just peek <auction> <bidder>     # <- reads the "sealed" bid out of storage
 ```
 
 Run of show for the session: [`RUNSHEET.md`](./RUNSHEET.md).
+Slides: [`builders-brunch-20260923.pdf`](./builders-brunch-20260923.pdf).
