@@ -12,6 +12,9 @@ the network, and does **not** change the fact that everyone on it can read stora
 - `contracts/src/step2/SealedBidAuction.sol` — the version you'd ship. Commit-reveal,
   deposits that make silence expensive, commitments bound to the bidder, pull refunds.
 
+Part of the workshops monorepo: `bun install` (from the repo root or any package folder)
+installs deps for every workspace into the single root `bun.lock`.
+
 ```bash
 cd contracts
 bun install
