@@ -28,12 +28,5 @@
   "ignoreScripts": [
     "sharp",
     "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "bufferutil",
-    "keccak",
-    "sharp",
-    "unrs-resolver",
-    "utf-8-validate"
   ]
 }
