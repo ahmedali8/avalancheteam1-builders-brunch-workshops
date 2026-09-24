@@ -83,12 +83,7 @@ contract SealedBidAuction {
     error AlreadyRevealed();
     error AlreadyFinalised();
     error BadReveal();
-    /// @param sent     What the caller attached.
-    /// @param required  What {DEPOSIT} demands.
     error WrongDeposit(uint256 sent, uint256 required);
-
-    /// @param sent     What the caller attached.
-    /// @param declared The bid amount they revealed.
     error WrongPayment(uint256 sent, uint256 declared);
     error ZeroBid();
     error NothingToWithdraw();
