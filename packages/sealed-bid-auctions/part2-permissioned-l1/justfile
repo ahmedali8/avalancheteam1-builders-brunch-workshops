@@ -144,3 +144,37 @@ allow who:
 revoke who:
     cast send {{ tx_allowlist }} "setNone(address)" $(just _addr {{ who }}) \
       --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }}
+
+# --- Commit-reveal, which still matters ----------------------------------------
+# Everyone in this room can read storage, so the part 1 fix carries over unchanged.
+# Build a commitment locally. A pure computation — the bid and salt never touch the chain.
+commit-hash who amount salt:
+    @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" $(just _addr {{ who }}) {{ amount }} {{ salt }})
+
+# A random 32-byte salt. Keep the output — without it you cannot reveal.
+salt:
+    @cast keccak $(date +%s%N)$RANDOM
+
+# Commit, staking the 0.01 deposit.
+commit auction hash who="alice":
+    cast send {{ auction }} "commit(bytes32)" {{ hash }} --value 0.01ether \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
+
+# This L1 only makes a block when a transaction arrives, so on a quiet chain the latest
+# block's timestamp can be minutes old. cast estimates gas against that block, so a reveal
+# sent after the commit deadline still reverts in estimation with NotInRevealPhase. A fixed
+# gas limit skips estimation; the transaction lands in a new block stamped with the current
+# time. The cost: a call that really would fail is mined and reverts, instead of erroring.
+timed := "--gas-limit 300000"
+
+# Reveal, paying the bid itself.
+reveal auction amount salt who="alice":
+    cast send {{ auction }} "reveal(uint256,bytes32)" {{ amount }} {{ salt }} --value {{ amount }} \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }} {{ timed }}
+
+finalise auction:
+    cast send {{ auction }} "finalise()" --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }} {{ timed }}
+
+# Pull refunds: losing bids, revealed deposits, and the winning bid for the seller.
+withdraw auction who:
+    cast send {{ auction }} "withdraw()" --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
