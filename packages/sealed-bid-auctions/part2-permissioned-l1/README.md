@@ -45,7 +45,9 @@ four things:
   nobody needs a faucet.
 
 Both allowlists are *precompiles*: contracts at fixed addresses, built into the chain and
-switched on in genesis. The chain ID is 1717.
+switched on in genesis. There is no Solidity behind them — the logic is Go code inside the node —
+but they speak an ordinary contract ABI, written down in `src/precompiles/IAllowList.sol`. The
+chain ID is 1717.
 
 Boot it:
 
