@@ -1,0 +1,57 @@
+# The part 1 auction, re-run on a permissioned Avalanche L1 running on this machine.
+
+_default:
+    @just --list
+
+build:
+    forge build
+
+test:
+    forge test -vv
+
+fmt:
+    forge fmt
+
+# --- Accounts ------------------------------------------------------------------
+# Anvil's well-known accounts. Public, deterministic, local-only — never real networks,
+# which is why they can sit in the repo. All four are funded in l1/genesis.json; only
+# admin, alice and bob are on the transaction allowlist.
+admin := "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+alice := "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+bob   := "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+carol := "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+admin_key := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+alice_key := "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+bob_key   := "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+carol_key := "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+
+# --- The local L1 --------------------------------------------------------------
+l1 := "brunch"
+
+# The blockchain ID, and so the RPC URL, is only known once the L1 is deployed, and
+# changes with the genesis. avalanche-cli records it in the L1's sidecar; read it from
+# there rather than pasting it around.
+rpc := `jq -r '.Networks["Local Network"].RPCEndpoints[0] // "not-deployed"' ~/.avalanche-cli/subnets/brunch/sidecar.json 2>/dev/null || echo not-deployed`
+
+# Create the L1 from l1/genesis.json and boot it on a local network. About a minute.
+l1-up:
+    avalanche blockchain create {{ l1 }} --evm --vm-version v0.8.0 \
+      --genesis l1/genesis.json --proof-of-authority --validator-manager-owner {{ admin }} \
+      --evm-token BRUNCH --icm=false --force --skip-update-check
+    avalanche blockchain deploy {{ l1 }} --local --skip-update-check
+
+# Pause the local network, keeping chain state. `l1-start` resumes it.
+l1-stop:
+    avalanche network stop --skip-update-check
+
+l1-start:
+    avalanche network start --skip-update-check
+
+# Throw the chain away and boot a fresh one from genesis.
+l1-reset:
+    -avalanche network clean --skip-update-check
+    -avalanche blockchain delete {{ l1 }} --skip-update-check
+    just l1-up
+
+l1-rpc:
+    @echo {{ rpc }}
