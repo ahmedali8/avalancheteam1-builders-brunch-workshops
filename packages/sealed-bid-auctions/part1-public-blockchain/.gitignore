@@ -12,3 +12,6 @@ node_modules/
 
 # secrets
 .env
+
+# Speaker runsheet — kept local, not part of the workshop.
+runsheet/
