@@ -104,3 +104,43 @@ peek auction bidder:
     echo "slot   : $slot"
     echo "raw    : $raw"
     echo "bid    : $wei wei  =  $(cast from-wei "$wei") BRUNCH"
+
+# --- Who is in the room --------------------------------------------------------
+# Subnet-EVM's allowlists are precompiles: contracts at fixed addresses, built into the
+# chain and configured in genesis. Roles: 0 none, 1 enabled, 2 admin, 3 manager.
+tx_allowlist       := "0x0200000000000000000000000000000000000002"
+deployer_allowlist := "0x0200000000000000000000000000000000000000"
+
+_addr who:
+    #!/usr/bin/env bash
+    case {{ who }} in
+      admin) echo {{ admin }} ;;
+      alice) echo {{ alice }} ;;
+      bob)   echo {{ bob }} ;;
+      carol) echo {{ carol }} ;;
+      0x*)   echo {{ who }} ;;
+      *) echo "unknown account: {{ who }} (admin, alice, bob, carol, or an address)" >&2; exit 1 ;;
+    esac
+
+# Show an account's role on both allowlists, and its balance.
+roles who:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    addr=$(just _addr {{ who }})
+    names=(none enabled admin manager)
+    tx=$(cast call {{ tx_allowlist }} "readAllowList(address)(uint256)" "$addr" --rpc-url {{ rpc }})
+    dep=$(cast call {{ deployer_allowlist }} "readAllowList(address)(uint256)" "$addr" --rpc-url {{ rpc }})
+    echo "account  : {{ who }} ($addr)"
+    echo "transact : ${names[$tx]}"
+    echo "deploy   : ${names[$dep]}"
+    echo "balance  : $(cast balance "$addr" --rpc-url {{ rpc }} --ether) BRUNCH"
+
+# Let an account transact. Signed by the admin — an allowlist admin is the only one who can.
+allow who:
+    cast send {{ tx_allowlist }} "setEnabled(address)" $(just _addr {{ who }}) \
+      --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }}
+
+# Take it away again.
+revoke who:
+    cast send {{ tx_allowlist }} "setNone(address)" $(just _addr {{ who }}) \
+      --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }}
