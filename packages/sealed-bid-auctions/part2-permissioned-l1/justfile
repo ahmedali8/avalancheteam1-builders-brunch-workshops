@@ -55,3 +55,52 @@ l1-reset:
 
 l1-rpc:
     @echo {{ rpc }}
+
+# The base fee floor is 1 wei and block gas cost is off (see l1/genesis.json), but the
+# node still *suggests* a 150 gwei tip. Ask for no tip and a transaction costs gasUsed
+# wei. The 1 gwei cap only bounds the fee; what you pay is the 1 wei base fee.
+fees := "--priority-gas-price 0 --gas-price 1gwei"
+
+# Map a name to its key, so stage commands read `bid <auction> 3ether carol`.
+_key who:
+    #!/usr/bin/env bash
+    case {{ who }} in
+      admin) echo {{ admin_key }} ;;
+      alice) echo {{ alice_key }} ;;
+      bob)   echo {{ bob_key }} ;;
+      carol) echo {{ carol_key }} ;;
+      *) echo "unknown account: {{ who }} (admin, alice, bob, carol)" >&2; exit 1 ;;
+    esac
+
+# --- Deploy the part 1 contracts, unchanged ------------------------------------
+# Only the admin is on the deployer allowlist. Try `just deploy-naive alice` to see why
+# that matters.
+deploy-naive who="admin":
+    forge script script/DeployNaiveAuction.s.sol:DeployNaiveAuction \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) --broadcast \
+      --with-gas-price 1gwei --priority-gas-price 0
+
+deploy-sealed who="admin":
+    forge script script/DeploySealedBidAuction.s.sol:DeploySealedBidAuction \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) --broadcast \
+      --with-gas-price 1gwei --priority-gas-price 0
+
+# Submit a bid to the naive auction.
+bid auction amount who="alice":
+    cast send {{ auction }} "submitBid(uint256)" {{ amount }} \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
+
+# --- THE ATTACK, again ---------------------------------------------------------
+# Identical to part 1: `sealedBid` is NaiveAuction's first variable, so its slot index is
+# 0, and sealedBid[bidder] sits at keccak256(bidder . 0). On this chain only allowlisted
+# accounts can transact — but reading storage is not a transaction.
+peek auction bidder:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    slot=$(cast index address {{ bidder }} 0)
+    raw=$(cast storage {{ auction }} "$slot" --rpc-url {{ rpc }})
+    wei=$(cast to-dec "$raw")
+    echo "bidder : {{ bidder }}"
+    echo "slot   : $slot"
+    echo "raw    : $raw"
+    echo "bid    : $wei wei  =  $(cast from-wei "$wei") BRUNCH"
