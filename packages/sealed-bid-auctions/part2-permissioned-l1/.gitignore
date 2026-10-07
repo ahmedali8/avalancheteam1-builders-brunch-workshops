@@ -7,3 +7,6 @@ broadcast/
 
 # bun / deps
 node_modules/
+
+# Speaker runsheet — kept local, not part of the workshop.
+runsheet/
