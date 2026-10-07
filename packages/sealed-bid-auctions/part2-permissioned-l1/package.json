@@ -1,0 +1,9 @@
+{
+  "name": "sealed-bid-auctions-part2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The part 1 sealed-bid auction re-run on a permissioned local Avalanche L1. Tasks live in the justfile; package.json exists only to pin Solidity deps.",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2"
+  }
+}

@@ -1,0 +1,9 @@
+# Foundry
+out/
+cache/
+# Everything here targets a throwaway local L1 whose chain is rebuilt on every reset,
+# so deployment receipts are noise.
+broadcast/
+
+# bun / deps
+node_modules/
