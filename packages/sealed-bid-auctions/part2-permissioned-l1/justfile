@@ -1,0 +1,180 @@
+# The part 1 auction, re-run on a permissioned Avalanche L1 running on this machine.
+
+_default:
+    @just --list
+
+build:
+    forge build
+
+test:
+    forge test -vv
+
+fmt:
+    forge fmt
+
+# --- Accounts ------------------------------------------------------------------
+# Anvil's well-known accounts. Public, deterministic, local-only — never real networks,
+# which is why they can sit in the repo. All four are funded in l1/genesis.json; only
+# admin, alice and bob are on the transaction allowlist.
+admin := "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+alice := "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+bob   := "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+carol := "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+admin_key := "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+alice_key := "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+bob_key   := "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+carol_key := "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+
+# --- The local L1 --------------------------------------------------------------
+l1 := "brunch"
+
+# The blockchain ID, and so the RPC URL, is only known once the L1 is deployed, and
+# changes with the genesis. avalanche-cli records it in the L1's sidecar; read it from
+# there rather than pasting it around.
+rpc := `jq -r '.Networks["Local Network"].RPCEndpoints[0] // "not-deployed"' ~/.avalanche-cli/subnets/brunch/sidecar.json 2>/dev/null || echo not-deployed`
+
+# Create the L1 from l1/genesis.json and boot it on a local network. About a minute.
+l1-up:
+    avalanche blockchain create {{ l1 }} --evm --vm-version v0.8.0 \
+      --genesis l1/genesis.json --proof-of-authority --validator-manager-owner {{ admin }} \
+      --evm-token BRUNCH --icm=false --force --skip-update-check
+    avalanche blockchain deploy {{ l1 }} --local --skip-update-check
+
+# Pause the local network, keeping chain state. `l1-start` resumes it.
+l1-stop:
+    avalanche network stop --skip-update-check
+
+l1-start:
+    avalanche network start --skip-update-check
+
+# Throw the chain away and boot a fresh one from genesis.
+l1-reset:
+    -avalanche network clean --skip-update-check
+    -avalanche blockchain delete {{ l1 }} --skip-update-check
+    just l1-up
+
+l1-rpc:
+    @echo {{ rpc }}
+
+# The base fee floor is 1 wei and block gas cost is off (see l1/genesis.json), but the
+# node still *suggests* a 150 gwei tip. Ask for no tip and a transaction costs gasUsed
+# wei. The 1 gwei cap only bounds the fee; what you pay is the 1 wei base fee.
+fees := "--priority-gas-price 0 --gas-price 1gwei"
+
+# Map a name to its key, so stage commands read `bid <auction> 3ether carol`.
+_key who:
+    #!/usr/bin/env bash
+    case {{ who }} in
+      admin) echo {{ admin_key }} ;;
+      alice) echo {{ alice_key }} ;;
+      bob)   echo {{ bob_key }} ;;
+      carol) echo {{ carol_key }} ;;
+      *) echo "unknown account: {{ who }} (admin, alice, bob, carol)" >&2; exit 1 ;;
+    esac
+
+# --- Deploy the part 1 contracts, unchanged ------------------------------------
+# Only the admin is on the deployer allowlist. Try `just deploy-naive alice` to see why
+# that matters.
+deploy-naive who="admin":
+    forge script script/DeployNaiveAuction.s.sol:DeployNaiveAuction \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) --broadcast \
+      --with-gas-price 1gwei --priority-gas-price 0
+
+deploy-sealed who="admin":
+    forge script script/DeploySealedBidAuction.s.sol:DeploySealedBidAuction \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) --broadcast \
+      --with-gas-price 1gwei --priority-gas-price 0
+
+# Submit a bid to the naive auction.
+bid auction amount who="alice":
+    cast send {{ auction }} "submitBid(uint256)" {{ amount }} \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
+
+# --- THE ATTACK, again ---------------------------------------------------------
+# Identical to part 1: `sealedBid` is NaiveAuction's first variable, so its slot index is
+# 0, and sealedBid[bidder] sits at keccak256(bidder . 0). On this chain only allowlisted
+# accounts can transact — but reading storage is not a transaction.
+peek auction bidder:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    slot=$(cast index address {{ bidder }} 0)
+    raw=$(cast storage {{ auction }} "$slot" --rpc-url {{ rpc }})
+    wei=$(cast to-dec "$raw")
+    echo "bidder : {{ bidder }}"
+    echo "slot   : $slot"
+    echo "raw    : $raw"
+    echo "bid    : $wei wei  =  $(cast from-wei "$wei") BRUNCH"
+
+# --- Who is in the room --------------------------------------------------------
+# Subnet-EVM's allowlists are precompiles: contracts at fixed addresses, built into the
+# chain and configured in genesis. Roles: 0 none, 1 enabled, 2 admin, 3 manager.
+tx_allowlist       := "0x0200000000000000000000000000000000000002"
+deployer_allowlist := "0x0200000000000000000000000000000000000000"
+
+_addr who:
+    #!/usr/bin/env bash
+    case {{ who }} in
+      admin) echo {{ admin }} ;;
+      alice) echo {{ alice }} ;;
+      bob)   echo {{ bob }} ;;
+      carol) echo {{ carol }} ;;
+      0x*)   echo {{ who }} ;;
+      *) echo "unknown account: {{ who }} (admin, alice, bob, carol, or an address)" >&2; exit 1 ;;
+    esac
+
+# Show an account's role on both allowlists, and its balance.
+roles who:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    addr=$(just _addr {{ who }})
+    names=(none enabled admin manager)
+    tx=$(cast call {{ tx_allowlist }} "readAllowList(address)(uint256)" "$addr" --rpc-url {{ rpc }})
+    dep=$(cast call {{ deployer_allowlist }} "readAllowList(address)(uint256)" "$addr" --rpc-url {{ rpc }})
+    echo "account  : {{ who }} ($addr)"
+    echo "transact : ${names[$tx]}"
+    echo "deploy   : ${names[$dep]}"
+    echo "balance  : $(cast balance "$addr" --rpc-url {{ rpc }} --ether) BRUNCH"
+
+# Let an account transact. Signed by the admin — an allowlist admin is the only one who can.
+allow who:
+    cast send {{ tx_allowlist }} "setEnabled(address)" $(just _addr {{ who }}) \
+      --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }}
+
+# Take it away again.
+revoke who:
+    cast send {{ tx_allowlist }} "setNone(address)" $(just _addr {{ who }}) \
+      --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }}
+
+# --- Commit-reveal, which still matters ----------------------------------------
+# Everyone in this room can read storage, so the part 1 fix carries over unchanged.
+# Build a commitment locally. A pure computation — the bid and salt never touch the chain.
+commit-hash who amount salt:
+    @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" $(just _addr {{ who }}) {{ amount }} {{ salt }})
+
+# A random 32-byte salt. Keep the output — without it you cannot reveal.
+salt:
+    @cast keccak $(date +%s%N)$RANDOM
+
+# Commit, staking the 0.01 deposit.
+commit auction hash who="alice":
+    cast send {{ auction }} "commit(bytes32)" {{ hash }} --value 0.01ether \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
+
+# This L1 only makes a block when a transaction arrives, so on a quiet chain the latest
+# block's timestamp can be minutes old. cast estimates gas against that block, so a reveal
+# sent after the commit deadline still reverts in estimation with NotInRevealPhase. A fixed
+# gas limit skips estimation; the transaction lands in a new block stamped with the current
+# time. The cost: a call that really would fail is mined and reverts, instead of erroring.
+timed := "--gas-limit 300000"
+
+# Reveal, paying the bid itself.
+reveal auction amount salt who="alice":
+    cast send {{ auction }} "reveal(uint256,bytes32)" {{ amount }} {{ salt }} --value {{ amount }} \
+      --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }} {{ timed }}
+
+finalise auction:
+    cast send {{ auction }} "finalise()" --rpc-url {{ rpc }} --private-key {{ admin_key }} {{ fees }} {{ timed }}
+
+# Pull refunds: losing bids, revealed deposits, and the winning bid for the seller.
+withdraw auction who:
+    cast send {{ auction }} "withdraw()" --rpc-url {{ rpc }} --private-key $(just _key {{ who }}) {{ fees }}
