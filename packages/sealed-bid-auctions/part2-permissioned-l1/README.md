@@ -183,3 +183,5 @@ just l1-stop     # pause it, keeping its state
 just l1-start    # resume, in seconds
 just l1-reset    # throw it away and boot a fresh one from genesis
 ```
+
+Slides: [`builders-brunch-20261007.pdf`](./builders-brunch-20261007.pdf).
