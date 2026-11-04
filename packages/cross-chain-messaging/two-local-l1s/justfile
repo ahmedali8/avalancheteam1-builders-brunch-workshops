@@ -1,0 +1,120 @@
+# Two Avalanche L1s on this machine, talking over ICM.
+
+_default:
+    @just --list
+
+build:
+    forge build
+
+test:
+    forge test -vv
+
+fmt:
+    forge fmt
+
+# --- Accounts ------------------------------------------------------------------
+# "ewoq": avalanche-cli's well-known local key, prefunded on every L1 created with
+# --test-defaults. Public, local-only — never used on a real network, which is why it can
+# sit in the repo.
+owner := "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+key   := "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
+
+# --- The two L1s ---------------------------------------------------------------
+# Blockchain IDs, and so RPC URLs, only exist once the L1s are deployed. avalanche-cli
+# records them in each L1's sidecar; read them from there rather than pasting them around.
+rpc_a := `jq -r '.Networks["Local Network"].RPCEndpoints[0] // "not-deployed"' ~/.avalanche-cli/subnets/chainA/sidecar.json 2>/dev/null || echo not-deployed`
+rpc_b := `jq -r '.Networks["Local Network"].RPCEndpoints[0] // "not-deployed"' ~/.avalanche-cli/subnets/chainB/sidecar.json 2>/dev/null || echo not-deployed`
+
+# --- Versions ------------------------------------------------------------------
+# The newest set that runs natively on macOS and works together. Subnet-EVM now ships
+# inside AvalancheGo releases, so the two share a version. The relayer and signature
+# aggregator stop at the last releases built against AvalancheGo v1.14 that avalanche-cli
+# (in maintenance mode since Dec 2025) can still configure; newer ones are Linux-only
+# and built for AvalancheGo v1.15.
+avalanchego := "v1.14.2"
+relayer     := "icm-relayer-v1.7.4"
+aggregator  := "signature-aggregator-v0.5.4"
+vm_bin      := justfile_directory() / ".bin" / "subnet-evm-" + avalanchego
+versions    := "--avalanchego-version " + avalanchego + " --relayer-version " + relayer
+
+# Download Subnet-EVM from the AvalancheGo release and check Ava Labs' signature on it.
+vm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -x "{{ vm_bin }}" ] && { echo "have {{ vm_bin }}"; exit 0; }
+    case "$(uname -s)-$(uname -m)" in
+      Darwin-*)      asset=subnet-evm-macos-{{ avalanchego }}.zip ;;
+      Linux-x86_64)  asset=subnet-evm-linux-amd64-{{ avalanchego }}.tar.gz ;;
+      Linux-aarch64) asset=subnet-evm-linux-arm64-{{ avalanchego }}.tar.gz ;;
+      *) echo "unsupported platform" >&2; exit 1 ;;
+    esac
+    tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; cd "$tmp"
+    url=https://github.com/ava-labs/avalanchego/releases/download/{{ avalanchego }}/$asset
+    curl -sSfLO "$url" && curl -sSfLO "$url.sig"
+    curl -sSfL https://downloads.avax.network/avalanchego.gpg.key -o ava.key
+    mkdir -m 700 gnupg && gpg -q --homedir gnupg --import ava.key 2>/dev/null
+    gpg -q --homedir gnupg --verify "$asset.sig" "$asset"
+    case "$asset" in *.zip) unzip -q "$asset" ;; *) tar xzf "$asset" ;; esac
+    mkdir -p "$(dirname "{{ vm_bin }}")" && mv build/subnet-evm "{{ vm_bin }}"
+    "{{ vm_bin }}" --version
+
+# Create both L1s with ICM on, and boot them on one local network. About three minutes.
+# Each deploy also puts the ICM Messenger and Registry on the L1 and (re)starts a relayer
+# that watches every L1 on the network.
+l1-up: vm
+    just _create chainA 1001 AAA
+    just _create chainB 1002 BBB
+    just _deploy chainA
+    just _deploy chainB
+
+# avalanche-cli only knows the old standalone Subnet-EVM repo, so create with that, then
+# point the L1 at the binary from the AvalancheGo release before it is deployed.
+_create name chain_id token:
+    avalanche blockchain create {{ name }} --evm --vm-version v0.8.0 \
+      --evm-chain-id {{ chain_id }} --evm-token {{ token }} --icm \
+      --proof-of-authority --validator-manager-owner {{ owner }} --proxy-contract-owner {{ owner }} \
+      --test-defaults --force --skip-update-check
+    avalanche blockchain upgrade vm {{ name }} --config --binary {{ vm_bin }} --skip-update-check
+
+_deploy name:
+    avalanche blockchain deploy {{ name }} --local {{ versions }} \
+      --signature-aggregator-version {{ aggregator }} --skip-update-check
+
+# Pause the local network, keeping chain state. `l1-start` resumes it.
+l1-stop:
+    avalanche network stop --skip-update-check
+
+l1-start:
+    avalanche network start {{ versions }} --skip-update-check
+
+# Throw both chains away and boot fresh ones. `network clean` can leave the per-L1 node
+# clusters behind, so remove those too.
+# Each cleanup step may find nothing to remove; that's fine, so their output is hidden.
+l1-reset:
+    @echo "Removing any previous chainA / chainB…"
+    @-avalanche network clean --skip-update-check >/dev/null 2>&1
+    @-avalanche node local destroy chainA-local-node-local-network --skip-update-check >/dev/null 2>&1
+    @-avalanche node local destroy chainB-local-node-local-network --skip-update-check >/dev/null 2>&1
+    @-avalanche blockchain delete chainA --skip-update-check >/dev/null 2>&1
+    @-avalanche blockchain delete chainB --skip-update-check >/dev/null 2>&1
+    just l1-up
+
+l1-rpc:
+    @echo "chainA  {{ rpc_a }}"
+    @echo "chainB  {{ rpc_b }}"
+
+# --- Who is who ----------------------------------------------------------------
+# The Warp precompile: built into every Subnet-EVM chain at a fixed address. Ask it which
+# chain it is on and you get the 32-byte blockchain ID that ICM addresses messages to.
+warp      := "0x0200000000000000000000000000000000000005"
+messenger := "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf"
+
+ids:
+    @echo "chainA  $(cast call {{ warp }} 'getBlockchainID()(bytes32)' --rpc-url {{ rpc_a }})"
+    @echo "chainB  $(cast call {{ warp }} 'getBlockchainID()(bytes32)' --rpc-url {{ rpc_b }})"
+
+# Same address on both chains: avalanche-cli deploys it with a one-off signed transaction
+# (Nick's method), so the deployer and nonce, and so the address, match everywhere.
+messenger:
+    @echo "chainA  code size $(cast codesize {{ messenger }} --rpc-url {{ rpc_a }}) bytes at {{ messenger }}"
+    @echo "chainB  code size $(cast codesize {{ messenger }} --rpc-url {{ rpc_b }}) bytes at {{ messenger }}"
