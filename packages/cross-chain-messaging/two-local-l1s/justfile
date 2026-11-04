@@ -118,3 +118,45 @@ ids:
 messenger:
     @echo "chainA  code size $(cast codesize {{ messenger }} --rpc-url {{ rpc_a }}) bytes at {{ messenger }}"
     @echo "chainB  code size $(cast codesize {{ messenger }} --rpc-url {{ rpc_b }}) bytes at {{ messenger }}"
+
+# --- Step 1: the CLI does it all -----------------------------------------------
+# Send a message from one L1 to the other and wait for it to land. No contracts of ours.
+ping from="chainA" to="chainB" text="hello from the CLI":
+    avalanche interchain messenger sendMsg "{{ from }}" "{{ to }}" "{{ text }}" --local --genesis-key --skip-update-check
+
+# Watch the relayer pick messages up and deliver them.
+relayer-logs:
+    avalanche interchain relayer logs --local --skip-update-check
+
+# --- Step 2: our own contracts -------------------------------------------------
+# Receiver first: the Sender needs its address to send to.
+deploy-receiver:
+    forge create src/Receiver.sol:Receiver --rpc-url {{ rpc_b }} --private-key {{ key }} \
+      --broadcast --constructor-args {{ messenger }}
+
+deploy-sender:
+    forge create src/Sender.sol:Sender --rpc-url {{ rpc_a }} --private-key {{ key }} \
+      --broadcast --constructor-args {{ messenger }}
+
+# Send from the Sender on chain A to the Receiver on chain B.
+send sender receiver text:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dest=$(cast call {{ warp }} 'getBlockchainID()(bytes32)' --rpc-url {{ rpc_b }})
+    echo "to chainB ($dest), contract {{ receiver }}"
+    cast send {{ sender }} 'send(bytes32,address,string)' "$dest" {{ receiver }} "{{ text }}" \
+      --rpc-url {{ rpc_a }} --private-key {{ key }} | grep -E '^(status|transactionHash|blockNumber)'
+
+# What has arrived on chain B.
+read receiver:
+    @echo "received     : $(cast call {{ receiver }} 'received()(uint256)' --rpc-url {{ rpc_b }})"
+    @echo "lastMessage  : $(cast call {{ receiver }} 'lastMessage()(string)' --rpc-url {{ rpc_b }})"
+    @echo "from chain   : $(cast call {{ receiver }} 'lastSourceBlockchainID()(bytes32)' --rpc-url {{ rpc_b }})"
+    @echo "from contract: $(cast call {{ receiver }} 'lastOriginSender()(address)' --rpc-url {{ rpc_b }})"
+
+# Try to forge a delivery by calling the Receiver directly. It reverts with OnlyMessenger.
+forge-delivery receiver:
+    -cast send {{ receiver }} 'receiveTeleporterMessage(bytes32,address,bytes)' \
+      $(cast call {{ warp }} 'getBlockchainID()(bytes32)' --rpc-url {{ rpc_a }}) {{ owner }} \
+      $(cast abi-encode 'f(string)' 'totally from chain A') \
+      --rpc-url {{ rpc_b }} --private-key {{ key }}
