@@ -1,0 +1,15 @@
+# Foundry
+out/
+cache/
+# Everything here targets throwaway local L1s, rebuilt on every reset,
+# so deployment receipts are noise.
+broadcast/
+
+# bun / deps
+node_modules/
+
+# Speaker runsheet — kept local, not part of the workshop.
+runsheet/
+
+# Subnet-EVM binary fetched by `just vm`
+.bin/
