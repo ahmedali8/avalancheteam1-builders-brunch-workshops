@@ -64,9 +64,10 @@ bid-local auction amount key=key1:
 commit-hash bidder amount salt:
     @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" {{ bidder }} {{ amount }} {{ salt }})
 
-# A random 32-byte salt. Keep the output — without it you cannot reveal.
+# A random 32-byte salt from a cryptographically secure source. Keep the output — without
+# it you cannot reveal. Hashing a timestamp or $RANDOM would not do: those are guessable.
 salt:
-    @cast keccak $(date +%s%N)$RANDOM
+    @echo 0x$(openssl rand -hex 32)
 
 # --- Fuji ----------------------------------------------------------------------
 # Import the deployer key into an encrypted keystore (paste a THROWAWAY key once).

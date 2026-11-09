@@ -151,9 +151,10 @@ revoke who:
 commit-hash who amount salt:
     @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" $(just _addr {{ who }}) {{ amount }} {{ salt }})
 
-# A random 32-byte salt. Keep the output — without it you cannot reveal.
+# A random 32-byte salt from a cryptographically secure source. Keep the output — without
+# it you cannot reveal. Hashing a timestamp or $RANDOM would not do: those are guessable.
 salt:
-    @cast keccak $(date +%s%N)$RANDOM
+    @echo 0x$(openssl rand -hex 32)
 
 # Commit, staking the 0.01 deposit.
 commit auction hash who="alice":
