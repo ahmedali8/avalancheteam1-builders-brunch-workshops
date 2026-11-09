@@ -14,8 +14,10 @@ fmt:
 
 # --- Accounts ------------------------------------------------------------------
 # Anvil's well-known accounts. Public, deterministic, local-only — never real networks,
-# which is why they can sit in the repo. All four are funded in l1/genesis.json; only
-# admin, alice and bob are on the transaction allowlist.
+# which is why they can sit in the repo. All four are funded in l1/genesis.json; of these,
+# only admin, alice and bob are on the transaction allowlist. Genesis also enables
+# avalanche-cli's "ewoq" key (0x8db9…52FC): the CLI signs the validator manager setup
+# transactions with it while deploying the L1.
 admin := "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 alice := "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 bob   := "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
@@ -40,6 +42,12 @@ l1-up:
       --evm-token BRUNCH --icm=false --force --skip-update-check
     avalanche blockchain deploy {{ l1 }} --local --skip-update-check
 
+# avalanche-cli runs ONE local network per machine user, shared by every local L1 you have
+# deployed, not just this one. So these recipes act on all of them:
+#   l1-stop / l1-start  pause and resume every local L1, keeping their state.
+#   l1-reset            `network clean` deletes the state of EVERY local L1, then boots this
+#                       one fresh. Only run it where no other local L1 matters to you.
+
 # Pause the local network, keeping chain state. `l1-start` resumes it.
 l1-stop:
     avalanche network stop --skip-update-check
@@ -47,7 +55,7 @@ l1-stop:
 l1-start:
     avalanche network start --skip-update-check
 
-# Throw the chain away and boot a fresh one from genesis.
+# Throw away every local L1 (see above) and boot this one fresh from genesis.
 l1-reset:
     -avalanche network clean --skip-update-check
     -avalanche blockchain delete {{ l1 }} --skip-update-check
@@ -151,9 +159,10 @@ revoke who:
 commit-hash who amount salt:
     @cast keccak $(cast abi-encode "f(address,uint256,bytes32)" $(just _addr {{ who }}) {{ amount }} {{ salt }})
 
-# A random 32-byte salt. Keep the output — without it you cannot reveal.
+# A random 32-byte salt from a cryptographically secure source. Keep the output — without
+# it you cannot reveal. Hashing a timestamp or $RANDOM would not do: those are guessable.
 salt:
-    @cast keccak $(date +%s%N)$RANDOM
+    @echo 0x$(openssl rand -hex 32)
 
 # Commit, staking the 0.01 deposit.
 commit auction hash who="alice":
