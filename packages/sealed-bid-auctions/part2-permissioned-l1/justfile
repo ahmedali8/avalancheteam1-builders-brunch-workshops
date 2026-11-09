@@ -42,6 +42,12 @@ l1-up:
       --evm-token BRUNCH --icm=false --force --skip-update-check
     avalanche blockchain deploy {{ l1 }} --local --skip-update-check
 
+# avalanche-cli runs ONE local network per machine user, shared by every local L1 you have
+# deployed, not just this one. So these recipes act on all of them:
+#   l1-stop / l1-start  pause and resume every local L1, keeping their state.
+#   l1-reset            `network clean` deletes the state of EVERY local L1, then boots this
+#                       one fresh. Only run it where no other local L1 matters to you.
+
 # Pause the local network, keeping chain state. `l1-start` resumes it.
 l1-stop:
     avalanche network stop --skip-update-check
@@ -49,7 +55,7 @@ l1-stop:
 l1-start:
     avalanche network start --skip-update-check
 
-# Throw the chain away and boot a fresh one from genesis.
+# Throw away every local L1 (see above) and boot this one fresh from genesis.
 l1-reset:
     -avalanche network clean --skip-update-check
     -avalanche blockchain delete {{ l1 }} --skip-update-check
