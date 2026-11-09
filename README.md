@@ -10,9 +10,11 @@ folder under `packages/`, with its own README.
 | --- | --- | --- |
 | 1 | [`packages/guestbook`](./packages/guestbook) | On-chain guestbook on Avalanche Fuji — Foundry contract + Next.js app. |
 | 2 | [`packages/sealed-bid-auctions`](./packages/sealed-bid-auctions) | Two-part sealed-bid auction workshop. Part 1: a naive auction broken live on a public chain, then commit-reveal. Part 2: the same auction on a permissioned L1. |
+| 3 | [`packages/cross-chain-messaging`](./packages/cross-chain-messaging/two-local-l1s) | Two local Avalanche L1s exchanging messages over ICM — CLI first, then a Sender and Receiver contract of our own. |
 
 ```text
 packages/
+├── cross-chain-messaging/
 ├── guestbook/
 └── sealed-bid-auctions/
 ```

@@ -1,0 +1,9 @@
+{
+  "name": "cross-chain-messaging-two-local-l1s",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Two local Avalanche L1s exchanging messages over ICM. Tasks live in the justfile; package.json exists only to pin Solidity deps.",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.17.0"
+  }
+}
